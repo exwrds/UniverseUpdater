@@ -42,9 +42,9 @@ def LoadRbxlFile() -> None | bytes:
         with open(CONFIG["RBXL-BINARY"], "rb") as file_data:
             rbxl_binary = file_data.read()
             if not rbxl_binary:
-                raise ValueError("The path provided for .rbxl binary in config.sjon is correct, but the file appears to be empty?", 3)
+                raise ValueError("The path provided for .rbxl binary in config.json is correct, but the file appears to be empty?", 3)
     except FileNotFoundError:
-        return Log("The path provided for the .rbxl binary in config.json is incorrect.", 3)
+        return Log("Could not find the .rbxl binary provided from config.json, does it exist?", 3)
     except ValueError as error:
         return Log(error, 3)
     else:
