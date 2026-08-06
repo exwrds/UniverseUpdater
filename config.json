@@ -1,0 +1,11 @@
+/*/
+    By default, this config is broken and will not work, you will need to enter your own API key along with insert your UniverseIDs,
+    once done, delete these comments from the file and it should work, more information available in readme.md
+/*/
+
+{
+    "MAX_CONCURRENT_UPLOADS": 10,
+    "X-API-KEY": "YOUR_API_KEY_HERE",
+    "RBXL-BINARY": "RBXM.rbxl",
+    "UNIVERSE-IDS": [ ] // Universe IDS you want to update here
+}
