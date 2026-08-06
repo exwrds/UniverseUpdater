@@ -44,7 +44,7 @@ def LoadRbxlFile() -> None | bytes:
             if not rbxl_binary:
                 raise ValueError("The path provided for .rbxl binary in config.sjon is correct, but the file appears to be empty?", 3)
     except FileNotFoundError:
-        return Log("The path provided for the .rbxl binary in config.json is incorrect.", 3)
+        return Log("Could not find the .rbxl binary provided from config.json, does it exist?", 3)
     except ValueError as error:
         return Log(error, 3)
     else:
@@ -141,9 +141,9 @@ async def UpdateUniverseAsync(universe_id: int, universe_name: str, place_ids: L
 
     async with httpx.AsyncClient(limits=httpx.Limits(max_connections=max_concurrent_uploads)) as client:
         tasks = [upload_file(client, place_id) for place_id in place_ids]
-        results = await asyncio.gather(*tasks)
+        results = await asyncio.gather(*tasks, return_exceptions=False)
 
-    successful_updates = sum(results)
+    successful_updates = len([res for res in results if res is True])
 
     Log(f'''Finished updating places within Universe {universe_id}.
     Total Places: {total_places},
