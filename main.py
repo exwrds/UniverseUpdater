@@ -109,7 +109,7 @@ async def GetUniversePlacesAsync(universe_id: int) -> str | List[int]:
 
     return universe_places
 
-async def UpdateUniverseAsync(universe_id: int, universe_name: str, place_ids: List[int], rbxl_binary: bytes, max_concurrent_uploads: int = 10) -> int:
+async def UpdateUniverseAsync(universe_id: int, universe_name: str, place_ids: List[int], rbxl_binary: Any, max_concurrent_uploads: int = 10) -> int:
     start_time = GetUnixTime()
     total_places = len(place_ids)
     semaphore = asyncio.Semaphore(max_concurrent_uploads)
@@ -120,22 +120,45 @@ async def UpdateUniverseAsync(universe_id: int, universe_name: str, place_ids: L
     async def upload_file(client: httpx.AsyncClient, place_id: int):
         url = f"https://apis.roproxy.com/universes/v1/{universe_id}/places/{place_id}/versions?versionType=Published"
         async with semaphore:
-            for attempt in range(3):
+            for attempt in range(max_retries):
                 try:
                     roblox_response = await client.post(url, headers=HEADERS, data=rbxl_binary, timeout=30.0)
+                    reset_list = roblox_response.headers.get_list("x-ratelimit-reset")
 
                     if roblox_response.status_code == 200:
-                        Log(f"Successfully updated PlaceID: {place_id}")
+                        info = f"Successfully updated PlaceID: {place_id}"
+                        level = 1
+                        remaining_list = roblox_response.headers.get_list("x-ratelimit-remaining")
+                        if remaining_list and reset_list:
+                            min_remaning = min([int(r) for r in remaining_list])
+                            max_reset = max([float(r) for r in reset_list])
+
+                            if min_remaning <= 1 and max_reset > 0:
+                                info += f", but quota is almost depleted ({min_remaning} left). Proactively pausing {max_reset}s..."
+                                level = 2
+                                await asyncio.sleep(max_reset)
+
+                        Log(info, level)                    
                         return True
-                    elif roblox_response.status_code == 429:
-                        retry_after = int(roblox_response.headers.get("Retry-After", 2 ** attempt))
-                        Log(f"Throttled whilst attempting to update PlaceID: {place_id}, retrying in {retry_after}s...", 2)
-                        await asyncio.sleep(retry_after)
+                    elif roblox_response.status_code == 429: # Rate Limited
+                        retry_after = roblox_response.headers.get("retry-after")
+                        if retry_after:
+                            wait_time = float(retry_after)
+                            Log(f"[ATTEMPT {attempt + 1}] [429] Rate Limit exceeded whilst trying to update PlaceID: {place_id}, waiting {wait_time}s (from retry-after)", 2)
+                        else:
+                            wait_time = max(float(r) for r in reset_list) if reset_list else 2.0
+                            Log(f"[ATTEMPT {attempt + 1}] [429] Rate Limit exceeded whilst trying to update PlaceID: {place_id}, waiting {wait_time}s (from x-ratelimit-reset)", 2)
+
+                        await asyncio.sleep(wait_time)
+                        continue
+                    elif roblox_response.status_code == 409: # Version Conflict
+                        Log(f"[409 Conflict] Place {place_id} is busy. waiting 2s before retry...")
+                        await asyncio.sleep(2.0)
                         continue
 
                     roblox_response.raise_for_status()
-                    return roblox_response.status_code
-                except httpx.HTTPError as error:
+                except httpx.HTTPStatusError as status_code:
+                    Log(f"[{status_code}]: Could not update Place: {place_id}, try again later, or try to manually update this Place.", 3)
                     break
                 
 
