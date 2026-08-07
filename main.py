@@ -126,7 +126,7 @@ async def UpdateUniverseAsync(universe_id: int, universe_name: str, place_ids: L
                     reset_list = roblox_response.headers.get_list("x-ratelimit-reset")
 
                     if roblox_response.status_code == 200:
-                        info = f"Successfully updated PlaceID: {place_id}"
+                        info = f"[ATTEMPT {attempt + 1}] Successfully updated PlaceID: {place_id}"
                         level = 1
                         remaining_list = roblox_response.headers.get_list("x-ratelimit-remaining")
                         if remaining_list and reset_list:
@@ -152,8 +152,8 @@ async def UpdateUniverseAsync(universe_id: int, universe_name: str, place_ids: L
                         await asyncio.sleep(wait_time)
                         continue
                     elif roblox_response.status_code == 409: # Version Conflict
-                        Log(f"[409 Conflict] Place {place_id} is busy. waiting 2s before retry...")
-                        await asyncio.sleep(2.0)
+                        Log(f"[ATTEMPT {attempt + 1}] [409 Conflict] Place {place_id} is busy. waiting 5s before retry...")
+                        await asyncio.sleep(5.0)
                         continue
 
                     roblox_response.raise_for_status()
