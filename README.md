@@ -10,4 +10,5 @@ The API Key needs the following Access Permissions: universe-places. Select what
 universe-places:write, Save & Generate the key and then paste the generated key into X-API-KEY within config.json
 
 # Notes
-the config comes broken btw you need to edit it for this to work
+the config comes broken btw you need to edit it for this to work,
+you need to run this program with CMD in the folder that the .py is actually located in (because it uses cwd)
