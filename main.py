@@ -116,7 +116,7 @@ async def UpdateUniverseAsync(universe_id: int, universe_name: str, place_ids: L
 
     Log(f"Attempting to update {total_places} place{total_places == 1 and "" or "s"} within {universe_name}...")
 
-    max_retries = 3
+    max_retries = 5
     async def upload_file(client: httpx.AsyncClient, place_id: int):
         url = f"https://apis.roproxy.com/universes/v1/{universe_id}/places/{place_id}/versions?versionType=Published"
         async with semaphore:
