@@ -151,8 +151,8 @@ async def UpdateUniverseAsync(universe_id: int, universe_name: str, place_ids: L
 
                         await asyncio.sleep(wait_time)
                         continue
-                    elif roblox_response.status_code == 409: # Version Conflict
-                        Log(f"[ATTEMPT {attempt + 1}] [409 Conflict] Place {place_id} is busy. waiting 5s before retry...")
+                    elif roblox_response.status_code == 409: # Conflict
+                        Log(f"[ATTEMPT {attempt + 1}] [409 Conflic] Place {place_id} is busy, if RobloxStudio is open in this place currently, please exit, waiting 5s before retry...", 2)
                         await asyncio.sleep(5.0)
                         continue
 
