@@ -60,9 +60,11 @@ async def GetUniverseDataAsync(universe_id: int):
     else:
         return roblox_response.json()
 
-async def ValidateUniversesAsync(loaded_universes: List[Any]) -> Dict[int, Dict[str, Any]]:
-    final: Dict[int, Dict[str, Any]] = {}
-    for universe_id in loaded_universes:
+async def ValidateUniversesAsync(loaded_universes):
+    final = {}
+    for data in loaded_universes:
+        exclude_places = data.get("ExcludePlaces", [])
+        universe_id = data.get("UniverseID")
         try:
             converted = int(universe_id)
         except (ValueError, TypeError):
@@ -70,18 +72,19 @@ async def ValidateUniversesAsync(loaded_universes: List[Any]) -> Dict[int, Dict[
             continue
 
         if converted in final:
-            Log(f"Universe: {converted}, has a duplicate and only 1 will be kept and used.", 2)
+            Log(f"Universe: {universe_id}, has a duplicate and only 1 will be kept and used.", 2)
             continue
 
         universe_data = await GetUniverseDataAsync(converted)
         if isinstance(universe_data, dict):
+            universe_data["ExcludePlaces"] = exclude_places
             final[converted] = universe_data
         else:
-            Log(f"Universe: {converted} does not seem to be registered within Roblox Servers, skipping...", 2)
+            Log(f"Universe {converted} does not seem to be registered within Roblox Server, skipping...", 2)
 
     return final
 
-async def GetUniversePlacesAsync(universe_id: int) -> str | List[int]:
+async def GetUniversePlacesAsync(universe_id: int, exclude_places: List[int]) -> str | List[int]:
     universe_places = []
     cursor = None
 
@@ -99,7 +102,11 @@ async def GetUniversePlacesAsync(universe_id: int) -> str | List[int]:
                 data = roblox_response.json()
 
                 for place in data.get("data", []):
-                    universe_places.append(place["id"])
+                    place_id = place["id"]
+                    if place_id in exclude_places:
+                        Log(f"Place: '{place["name"]}' has been excluded from being updated via this tool, skipping...", 1)
+                    else:
+                        universe_places.append(place_id)
 
                 cursor = data.get("nextPageCursor")
                 if not cursor:
@@ -152,7 +159,7 @@ async def UpdateUniverseAsync(universe_id: int, universe_name: str, place_ids: L
                         await asyncio.sleep(wait_time)
                         continue
                     elif roblox_response.status_code == 409: # Conflict
-                        Log(f"[ATTEMPT {attempt + 1}] [409 Conflict] Place {place_id} is busy, if RobloxStudio is open in this place currently, please exit, waiting 5s before retry...", 2)
+                        Log(f"[ATTEMPT {attempt + 1}] [409 Conflict] Place {place_id} is busy, if Roblox Studio is open in this place currently, please exit, waiting 5s before retry...", 2)
                         await asyncio.sleep(5.0)
                         continue
 
@@ -196,10 +203,11 @@ async def main():
     Log(f"UniverseIds loaded, found: {', '.join([data.get("name", "Unknown") for data in loaded_universes.values()])}", 1)
 
     for universe_id in loaded_universes:
-        universe_places = await GetUniversePlacesAsync(universe_id)
-        universe_name: str = loaded_universes[universe_id].get("name", "Unknown")
+        universe_data = loaded_universes.get(universe_id)
+        universe_places = await GetUniversePlacesAsync(universe_id, universe_data.get("ExcludePlaces", []))
+        universe_name = universe_data.get("name", "Unknown")
         if isinstance(universe_places, str):
-            Log(f"Request failed when attemping to get places for: {universe_name}", 2)
+            Log(f"Request failed when attempting to get places for: {universe_name}", 2)
         else:
             await UpdateUniverseAsync(universe_id, universe_name, universe_places, loaded_binary, max_concurrent_uploads)
 

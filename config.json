@@ -7,5 +7,7 @@
     "MAX_CONCURRENT_UPLOADS": 10,
     "X-API-KEY": "YOUR_API_KEY_HERE",
     "RBXL-BINARY": "RBXM.rbxl",
-    "UNIVERSE-IDS": [ ] // Universe IDS you want to update here
+
+    // ExcludePlaces is the placeIDs that you do NOT want to be updated by this tool.
+    "UNIVERSE-IDS": [ { "UniverseID": 1234567890, "ExcludePlaces": [12345678]} ]
 }
